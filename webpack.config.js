@@ -16,10 +16,10 @@ module.exports = {
   },
   module: {
     loaders: [
-      { 
-        test: /\.js$/, 
-        exclude: /node_modules/, 
-        loader: "babel-loader", 
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        loader: "babel-loader",
         query:{
           presets: ['react', 'es2015', "stage-3"]
         }
@@ -41,12 +41,15 @@ module.exports = {
       }),
   ],
   watch: true,
-  //three.jsを使うときにexamples以下をimportできるようにする
-  // resolve: {
-  //   alias: {
-  //     'three-extras': path.resolve(__dirname, 'node_modules/three/examples/js/')
-  //   }
-  // },
+  resolve: {
+    modules: [
+      path.resolve(__dirname, "./app/js"),
+      "node_modules"
+    ]
+    // alias: {
+    //   'three-extras': path.resolve(__dirname, 'node_modules/three/examples/js/')
+    // }
+  },
   devtool: 'inline-source-map'
-  
+
 };

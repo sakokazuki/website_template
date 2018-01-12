@@ -324,6 +324,29 @@ gulp.task('imagemin', ()=>{
   .pipe(gulp.dest('dist/'));
 });
 
+//----------------
+// FTP
+// config.js
+// module.exports = {
+//   host: "testtest.co.jp",
+//   user: "user",
+//   pass: "password",
+//   parallel: 10,
+//   dest: "/"
+// }
+//----------------
+gulp.task('ftpdeploy', ()=> {
+  const ftp = require('vinyl-ftp');
+  const ftpconfig = require('./ftpconfig.js')
+
+  const conn = ftp.create(ftpconfig);
+  const globs = [buildPath+'**', '!'+buildPath+"api/**"];
+
+  return gulp.src(globs, {buffer: false})
+    .pipe(conn.newer(ftpconfig.dest))
+    .pipe(conn.dest(ftpconfig.dest));
+
+});
 
 //----------------
 // SFTP

@@ -1,1 +1,11 @@
-// og
+- var meta = data.data.meta
+
+meta(property="og:type" content="website")
+meta(property="og:title",content=meta.og_title)
+meta(property="og:description",content=meta.og_description)
+meta(property="og:site_name",content=title)
+meta(property="og:url",content=meta.og_url)
+meta(property="og:image",content=meta.og_img)
+meta(property="og:locale",content="ja_JP")
+
+meta(name="twitter:card" content="summary_large_image")

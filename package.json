@@ -56,6 +56,8 @@
     "wolfy87-eventemitter": "^5.2.1"
   },
   "dependencies": {
-    "jquery": "^3.2.1"
+    "eventemitter": "^0.3.3",
+    "jquery": "^3.2.1",
+    "whatwg-fetch": "^2.0.3"
   }
 }

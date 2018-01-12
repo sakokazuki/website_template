@@ -3,8 +3,9 @@
     "title":"ページタイトル",
     "description":"ディスクリプション",
     "keywords":"キーワード",
-    "share":"シェアタイトル",
-    "url":"シェアurl",
-    "ogimg":"http://hoge.com/img/ogimg.png"
+    "og_title":"シェアタイトル",
+    "og_description": "シェアディスクリプション",
+    "og_url":"シェアurl",
+    "og_img":"http://hoge.com/img/ogimg.png"
   }
 }

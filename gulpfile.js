@@ -33,11 +33,13 @@ switch(process.env.NODE_ENV){
 }
 console.log(variables);
 console.log(process.env.NODE_ENV);
+const PORT = 8888;
 const sourcePath = "./app/";
 const jsPath = buildPath+"js/";
 const htmlPath = buildPath;
 const cssPath = buildPath+"styles/";
 const imageSpriteDir =  ["img/sp/sp-sprite", "img/pc-sprite"];
+
 
 /*------------------------------------------
 gulp tasks
@@ -115,7 +117,7 @@ gulp.task("browser-sync", ()=>{
     },
     scrollProportionally: false,
     open: true,
-    port: 8888
+    port: PORT
   })
 })
 

@@ -6,27 +6,35 @@ empty = "";
 module.exports = {
   context: __dirname + '/app',
   entry: {
-    'app': ['./js/app'],
-    'sub': ['./js/sub'],
+    'app': ['./js/app']
   },
   output: {
     path: __dirname + '/build/js',
-    filename: '[name].js',
-    jsonpFunction: 'sub'
+    filename: '[name].js'
   },
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        loader: "babel-loader",
-        query:{
-          presets: ['react', 'es2015', "stage-3"]
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['react', 'es2015', "stage-3"]
+          }
         }
       },
       {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      },
+      {
        test: /\.(glsl|frag|vert)$/,
-       loader: 'shader-loader',
+       use: 'shader-loader',
+      },
+      {
+        test: /\.(svg)$/,
+        use: 'html-loader',
       }
     ]
   },
@@ -34,11 +42,11 @@ module.exports = {
       new webpack.DefinePlugin({
         ROOT_DIR: JSON.stringify(empty),
       }),
-      new webpack.optimize.CommonsChunkPlugin({
-        name: 'sub',
-        chunks: ['app'],
-        minChunks: Infinity,
-      }),
+      // new webpack.optimize.CommonsChunkPlugin({
+      //   name: 'sub',
+      //   chunks: ['app'],
+      //   minChunks: Infinity,
+      // }),
   ],
   watch: true,
   resolve: {

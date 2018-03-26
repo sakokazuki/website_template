@@ -31,14 +31,16 @@ switch(process.env.NODE_ENV){
     buildPath = "./build/";
   break;
 }
-console.log(variables);
-console.log(process.env.NODE_ENV);
+variables = Object.assign(envfile.common, variables);
+
 const PORT = 8888;
 const sourcePath = "./app/";
 const jsPath = buildPath+"js/";
 const htmlPath = buildPath;
 const cssPath = buildPath+"styles/";
 const imageSpriteDir =  ["img/sp/sp-sprite", "img/pc-sprite"];
+
+
 
 
 /*------------------------------------------
@@ -245,13 +247,15 @@ let spriteStream = (path, name)=>{
 //  MINIFY
 //----------------
 gulp.task("minify", ()=>{
-  var uglify = require('gulp-uglify');
+  var uglify = require('gulp-uglify-es').default;
   var cleanCSS = require('gulp-clean-css');
   var mergeSteram = require('merge-stream');
 
-
   const js = gulp.src(buildPath+"**/*.js")
     .pipe(uglify())
+    .on('error', (e)=>{
+      console.log(e);
+    })
     .pipe(gulp.dest(buildPath));
 
   const css = gulp.src(buildPath+"**/*.css")
@@ -267,7 +271,7 @@ gulp.task("minify", ()=>{
 //----------------
 gulp.task("clean", ()=>{
   const del = require("del");
-  return del(["dist/"]).then(e=>{
+  return del([buildPath]).then(e=>{
     // console.log("deleted", e);
 
   });
@@ -305,7 +309,7 @@ gulp.task('imagemin', ()=>{
   var pngquant = require("imagemin-pngquant");
   var mozjpeg = require('imagemin-mozjpeg');
 
-  return gulp.src('dist/**/*')
+  return gulp.src(buildPath+'**/*')
     .pipe(plumber())
     .pipe(imagemin([
        pngquant({
@@ -317,14 +321,16 @@ gulp.task('imagemin', ()=>{
          quality:85,
          progressive: true
        }),
-       imagemin.svgo(),
+       // imagemin.svgo({
+       //  plugins: [{mergePaths: false}]
+       // }),
        imagemin.optipng(),
        imagemin.gifsicle()
      ]
-  ))
-  .pipe(imagemin())
-  .pipe(gulp.dest('dist/'));
+    ))
+    .pipe(gulp.dest(buildPath));
 });
+
 
 //----------------
 // FTP

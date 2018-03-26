@@ -1,4 +1,7 @@
 module.exports = {
+  "common": {
+    "test": "test string"
+  },
   "dev": {
     "env": "dev"
   },

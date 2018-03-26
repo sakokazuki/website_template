@@ -4,6 +4,8 @@ const plumber     = require("gulp-plumber")
 const runSequence = require('run-sequence')
 const fs = require("fs")
 const path = require("path");
+const url = require('url');
+
 
 /*------------------------------------------
 env variables
@@ -41,8 +43,6 @@ const cssPath = buildPath+"styles/";
 const imageSpriteDir =  ["img/sp/sp-sprite", "img/pc-sprite"];
 
 
-
-
 /*------------------------------------------
 gulp tasks
 ------------------------------------------*/
@@ -53,7 +53,8 @@ gulp tasks
 
 gulp.task('default', (cb)=> {
   return runSequence(
-    'sprite',
+    // 'sprite',
+    'clean',
     'copy',
     'webpack',
     'stylus',
@@ -78,16 +79,16 @@ gulp.task('build', (cb)=> {
   );
 });
 
-gulp.task("test", ()=>{
-  console.log("test");
-})
 
 //----------------
 //  Watch
 //----------------
 gulp.task("watch", ()=>{
+  console.log("watch");
   const watch = require("gulp-watch");
-  gulp.watch(sourcePath+"**/*.pug",["pug"])
+  gulp.watch(sourcePath+"**/*.pug", ()=>{
+    browserSync.reload();
+  })
   gulp.watch(sourcePath+"**/*.styl", ["stylus"])
 
   watch(sourcePath+"assets/**/*", (event)=>{
@@ -115,7 +116,10 @@ gulp.task("watch", ()=>{
 gulp.task("browser-sync", ()=>{
   browserSync.init({
     server: {
-      baseDir: buildPath
+      baseDir: buildPath,
+      middleware: [
+        pugMiddleWare
+      ]
     },
     scrollProportionally: false,
     open: true,
@@ -127,22 +131,53 @@ gulp.task("browser-sync", ()=>{
 //----------------
 //  LAYOUT
 //----------------
+const pugMiddleWare = (req, res, next)=> {
+  const requestPath = url.parse(req.url).pathname;
+
+  if (!requestPath.match(/(\/|\.html)$/)) {
+    return next();
+  }
+
+  const pug = require('pug');
+  const basePath = sourcePath+'layout';
+  const suffix = path.parse(requestPath).ext ? '': 'index.html'
+  const htmlPath = path.join(buildPath, requestPath, suffix);
+  const projectPth = process.cwd();
+  const pugPath = path.join(basePath, requestPath, suffix).replace('.html','.pug');
+
+  try{
+    fs.statSync(pugPath)
+    const data = getPugData();
+    const html = pug.compileFile(pugPath, {
+      locals:{},
+      pretty: true,
+      projectPth,
+      compileDebug: true,
+      doctype: "html"
+    })(data);
+
+    fs.writeFileSync(htmlPath, html, 'utf8');
+    console.log(htmlPath);
+    return next();
+  }catch (e){
+    console.log(e)
+    return next();
+  }
+}
+
+const getPugData = ()=>{
+  return {env: variables};
+}
+
 gulp.task("pug", ()=>{
   const pug = require("gulp-pug")
   const data = require("gulp-data")
 
-  return gulp.src([sourcePath+"layout/**/index.pug", "!"+sourcePath+"layout/partials/**/*"])
+  return gulp.src([sourcePath+"layout/**/*.pug", "!"+sourcePath+"layout/partials/**/*"])
     .pipe(plumber())
 
     .pipe(data((file)=> {
-      const dirname = sourcePath+"json/";
-      const files = fs.readdirSync(dirname);
-      let json = {};
-      files.forEach((filename)=>{
-        json[filename.replace(".json","")] = require(dirname + filename);
-      });
-
-      return {data:json, env: variables};
+      return getPugData();
     }))
     .pipe(pug({
       pretty: !isBuild
@@ -159,7 +194,9 @@ gulp.task('webpack', (cb)=>{
   const webpackStream = require("webpack-stream");
   const webpack = require("webpack");
   const webpackConfig = require("./webpack.config");
+  webpackConfig.context = path.join(__dirname, sourcePath);
   webpackConfig.watch = !isBuild;
+  webpackConfig.mode = isBuild ? "production" : "development";
   webpackConfig.plugins[0] = new webpack.DefinePlugin({
     ENV: JSON.stringify(variables)
   })

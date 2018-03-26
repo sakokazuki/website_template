@@ -1,10 +1,8 @@
 import $ from 'jquery'
-import 'babel-polyfill'
 
 class App{
   constructor(){
     console.log("app ready");
-
     console.log("env: "+ENV.env);
     this.sequence()
   }

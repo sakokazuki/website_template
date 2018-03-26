@@ -1,15 +1,16 @@
 extends ./partials/head
 
 block vars
-  - var title = data.data.meta.title
+  - var title = 'タイトル'
 
 
 block style
   link(rel="stylesheet" type="text/css" href="styles/main.css")
 
 block script
-  script(src="js/sub.js")
+  script(src="js/vendor.js")
   script(src="js/app.js")
+  script(src="js/sub.js")
 
 block content
   h1 テストページ

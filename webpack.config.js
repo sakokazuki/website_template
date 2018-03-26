@@ -1,16 +1,24 @@
 const webpack = require("webpack")
 const path = require("path")
 
-empty = "";
 
 module.exports = {
-  context: __dirname + '/app',
+  context: __dirname + '/app/',
+  mode: 'development',
   entry: {
-    'app': ['./js/app']
+    'app': ['babel-polyfill','./js/app'],
+    'sub': ['./js/sub'],
   },
   output: {
+    filename: '[name].js',
     path: __dirname + '/build/js',
-    filename: '[name].js'
+    jsonpFunction: 'sub'
+  },
+  optimization: {
+    splitChunks: {
+      name: 'vendor',
+      chunks: 'initial',
+    }
   },
   module: {
     rules: [
@@ -40,23 +48,18 @@ module.exports = {
   },
   plugins: [
       new webpack.DefinePlugin({
-        ROOT_DIR: JSON.stringify(empty),
+        ROOT_DIR: JSON.stringify("from gulp file"),
       }),
-      // new webpack.optimize.CommonsChunkPlugin({
-      //   name: 'sub',
-      //   chunks: ['app'],
-      //   minChunks: Infinity,
-      // }),
   ],
+  performance: {
+    hints: false
+  },
   watch: true,
   resolve: {
     modules: [
       path.resolve(__dirname, "./app/js"),
       "node_modules"
     ]
-    // alias: {
-    //   'three-extras': path.resolve(__dirname, 'node_modules/three/examples/js/')
-    // }
   },
   devtool: 'inline-source-map'
 

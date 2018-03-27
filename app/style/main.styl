@@ -1,33 +1,10 @@
 @import "./utils/_reset"
 @import "./utils/_mixins"
-@import "./utils/_animation"
+@import "./utils/_easing"
 
 @import "./components/_pc-sprite"
 @import "./components/_sp-sprite"
-$spW = $spritesheet_width
-sp-spriteWidth($sprite) {
-  width: ($sprite[4]/2);
-}
 
-sp-spriteHeight($sprite) {
-  height: ($sprite[5]/2);
-}
-
-sp-spritePosition($sprite) {
-  background-position: ($sprite[2]/2) ($sprite[3]/2);
-}
-
-sp-spriteImage($sprite) {
-  background-image: url($sprite[8]);
-}
-
-sp-sprite($sprite) {
-  sp-spriteImage($sprite)
-  sp-spritePosition($sprite)
-  sp-spriteWidth($sprite)
-  sp-spriteHeight($sprite)
-  background-size: ($spW/2) auto
-}
 
 
 $font= "ヒラギノ角ゴ Pro W3", "メイリオ", "Meiryo", sans-serif;
@@ -36,4 +13,3 @@ $font= "ヒラギノ角ゴ Pro W3", "メイリオ", "Meiryo", sans-serif;
   sprite($pc_sprite_test1)
 .sp-image
   sp-sprite($sp_sprite_test3, $spW)
-

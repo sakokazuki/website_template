@@ -12,35 +12,40 @@ env variables
 ------------------------------------------*/
 const envfile = require("./env.js")
 let isBuild;
-let dist;
 let variables;
-let buildPath;
+let _buildPath;
 switch(process.env.NODE_ENV){
   case "release":
     variables = envfile.release;
     isBuild = true;
-    buildPath = "./build_release/";
+    _buildPath = "build_release";
     break;
   case "stg":
     variables = envfile.stg;
     isBuild = true;
-    buildPath = "./build_stg/";
+    _buildPath = "build_stg";
     break;
   case "dev":
   default:
     variables = envfile.dev;
     isBuild = false;
-    buildPath = "./build/";
+    _buildPath = "build";
   break;
 }
 variables = Object.assign(envfile.common, variables);
 
 const PORT = 8888;
-const sourcePath = "./app/";
-const jsPath = buildPath+"js/";
-const htmlPath = buildPath;
-const cssPath = buildPath+"styles/";
-const imageSpriteDir =  ["img/sp/sp-sprite", "img/pc-sprite"];
+const SOURCEPATH = path.join('', 'app');
+const LAYOUTPATH = path.join(SOURCEPATH, 'layout');
+const STYLUSPATH = path.join(SOURCEPATH, 'style');
+const ASSETSPATH = path.join(SOURCEPATH, 'assets');
+const ES6PATH = path.join(SOURCEPATH, 'js');
+
+const BUILDPATH = _buildPath;
+const HTMLPATH = BUILDPATH;
+const JSPATH = path.join(BUILDPATH, 'js');
+const CSSPATH = path.join(BUILDPATH, 'styles');
+const SPRITEPATHS = ["img/sp/sp-sprite", "img/pc-sprite"];
 
 
 /*------------------------------------------
@@ -53,7 +58,7 @@ gulp tasks
 
 gulp.task('default', (cb)=> {
   return runSequence(
-    // 'sprite',
+    'sprite',
     'clean',
     'copy',
     'webpack',
@@ -84,29 +89,32 @@ gulp.task('build', (cb)=> {
 //  Watch
 //----------------
 gulp.task("watch", ()=>{
-  console.log("watch");
   const watch = require("gulp-watch");
-  gulp.watch(sourcePath+"**/*.pug", ()=>{
+  gulp.watch(path.join(LAYOUTPATH, "**/*.pug"), ()=>{
     browserSync.reload();
   })
-  gulp.watch(sourcePath+"**/*.styl", ["stylus"])
+  gulp.watch(path.join(STYLUSPATH,"**/*.styl"), ["stylus"])
 
-  watch(sourcePath+"assets/**/*", (event)=>{
+  watch(path.join(ASSETSPATH, "**/*"), (event)=>{
     gulp.start("copy");
   });
 
   let spriteDirArr = [];
-  imageSpriteDir.forEach((dir)=>{
+  SPRITEPATHS.forEach((dir)=>{
     const arr = dir.split('/');
     const name = arr[arr.length-1];
-    let path = "";
+    let soritepath = "";
     for(var j=0; j<arr.length-1; j++){
-      path += arr[j]+'/';
+      soritepath += arr[j]+'/';
     }
-    spriteDirArr.push(sourcePath+'assets/'+path+name+'/*png');
+    spriteDirArr.push(path.join(ASSETSPATH, soritepath, name, '*png'));
   });
   gulp.watch(spriteDirArr, ["sprite"]);
-  gulp.watch([jsPath + '**/*.js']).on('change', browserSync.reload);
+  // gulp.watch(path.join(JSPATH, "**/*.js"), ()=>{
+  //   console.log("js updated")
+  //   browserSync.reload();
+  // })
+  gulp.watch(path.join(ES6PATH, '**/*.js'), ['webpack']);
 
 })
 
@@ -116,14 +124,15 @@ gulp.task("watch", ()=>{
 gulp.task("browser-sync", ()=>{
   browserSync.init({
     server: {
-      baseDir: buildPath,
+      baseDir: BUILDPATH,
       middleware: [
         pugMiddleWare
       ]
     },
     scrollProportionally: false,
     open: true,
-    port: PORT
+    port: PORT,
+    ghostMode: false
   })
 })
 
@@ -139,15 +148,14 @@ const pugMiddleWare = (req, res, next)=> {
   }
 
   const pug = require('pug');
-  const basePath = sourcePath+'layout';
   const suffix = path.parse(requestPath).ext ? '': 'index.html'
-  const htmlPath = path.join(buildPath, requestPath, suffix);
+  const HTMLPATH = path.join(BUILDPATH, requestPath, suffix);
   const projectPth = process.cwd();
-  const pugPath = path.join(basePath, requestPath, suffix).replace('.html','.pug');
+  const pugPath = path.join(LAYOUTPATH, requestPath, suffix).replace('.html','.pug');
 
   try{
     fs.statSync(pugPath)
-    const data = getPugData();
+    const data = getPugData(pugPath);
     const html = pug.compileFile(pugPath, {
       locals:{},
       pretty: true,
@@ -156,8 +164,8 @@ const pugMiddleWare = (req, res, next)=> {
       doctype: "html"
     })(data);
 
-    fs.writeFileSync(htmlPath, html, 'utf8');
-    console.log(htmlPath);
+    fs.writeFileSync(HTMLPATH, html, 'utf8');
+    console.log(HTMLPATH);
     return next();
   }catch (e){
     console.log(e)
@@ -165,24 +173,29 @@ const pugMiddleWare = (req, res, next)=> {
   }
 }
 
-const getPugData = ()=>{
-  return {env: variables};
+const getPugData = (filepath)=>{
+  filepath = path.resolve(filepath, '../');
+  const layoutRoot = path.join(__dirname, LAYOUTPATH);
+  const rootpath = path.relative(filepath, layoutRoot);
+  return {ENV: variables, ROOTPATH: rootpath};
 }
 
 gulp.task("pug", ()=>{
   const pug = require("gulp-pug")
   const data = require("gulp-data")
 
-  return gulp.src([sourcePath+"layout/**/*.pug", "!"+sourcePath+"layout/partials/**/*"])
+  return gulp.src([
+      path.join(LAYOUTPATH, "**/*.pug"),
+      "!"+path.join(LAYOUTPATH, "partials/**/*.pug")
+    ])
     .pipe(plumber())
-
     .pipe(data((file)=> {
-      return getPugData();
+      return getPugData(file.path);
     }))
     .pipe(pug({
       pretty: !isBuild
     }))
-    .pipe(gulp.dest(htmlPath))
+    .pipe(gulp.dest(HTMLPATH))
     .pipe(browserSync.stream())
 })
 
@@ -194,20 +207,21 @@ gulp.task('webpack', (cb)=>{
   const webpackStream = require("webpack-stream");
   const webpack = require("webpack");
   const webpackConfig = require("./webpack.config");
-  webpackConfig.context = path.join(__dirname, sourcePath);
-  webpackConfig.watch = !isBuild;
+  webpackConfig.context = path.join(__dirname, SOURCEPATH);
+  webpackConfig.watch = false;
   webpackConfig.mode = isBuild ? "production" : "development";
   webpackConfig.plugins[0] = new webpack.DefinePlugin({
     ENV: JSON.stringify(variables)
   })
 
-  if(isBuild == false){
-    cb();
-  }
+  // if(isBuild == false){
+  //   cb();
+  // }
   return gulp.src('')
     .pipe(plumber())
     .pipe(webpackStream(webpackConfig, webpack))
-    .pipe(gulp.dest(jsPath));
+    .pipe(gulp.dest(JSPATH))
+    .pipe(browserSync.stream())
 });
 
 //----------------
@@ -217,7 +231,7 @@ gulp.task("stylus", ()=>{
   const stylus = require("gulp-stylus")
   const sourcemaps  = require('gulp-sourcemaps');
   const autoprefixer = require('gulp-autoprefixer')
-  return gulp.src(sourcePath+"style/**/!(_)*.styl")
+  return gulp.src(path.join(STYLUSPATH, "/**/!(_)*.styl"))
     .pipe(plumber())
     .pipe(sourcemaps.init())
     .pipe(stylus())
@@ -226,7 +240,7 @@ gulp.task("stylus", ()=>{
       cascade: false
      }))
     .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest(cssPath))
+    .pipe(gulp.dest(CSSPATH))
     .pipe(browserSync.stream())
 })
 
@@ -238,7 +252,7 @@ gulp.task('sprite', ()=> {
   let merged = merge();
 
 
-  imageSpriteDir.forEach((dir)=>{
+  SPRITEPATHS.forEach((dir)=>{
 
     const arr = dir.split('/');
     const name = arr[arr.length-1];
@@ -253,14 +267,14 @@ gulp.task('sprite', ()=> {
 
 });
 
-let spriteStream = (path, name)=>{
+let spriteStream = (spritepath, name)=>{
   const spritesmith = require('gulp.spritesmith');
   const merge = require('merge-stream');
 
   let opt = {
     imgName: name+'.png',
     cssName: '_'+name+'.styl',
-    imgPath: '../'+path+name+'.png',
+    imgPath: '../'+spritepath+name+'.png',
     cssFormat: 'stylus',
     padding: 2,
     cssVarMap: function (sprite) {
@@ -268,13 +282,13 @@ let spriteStream = (path, name)=>{
     }
   };
 
-  const spriteData = gulp.src(sourcePath+'assets/'+path+name+'/*png')
+  const spriteData = gulp.src(path.join(ASSETSPATH, spritepath, name, '*png'))
   .pipe(spritesmith(opt));
 
   const imgStream = spriteData.img
-    .pipe(gulp.dest(sourcePath+"assets/"+path));
+    .pipe(gulp.dest(path.join(ASSETSPATH, spritepath)));
   const cssStream = spriteData.css
-    .pipe(gulp.dest(sourcePath+"style/components/"));
+    .pipe(gulp.dest(path.join(STYLUSPATH, 'components')));
 
   return merge(imgStream, cssStream);
 }
@@ -288,16 +302,16 @@ gulp.task("minify", ()=>{
   var cleanCSS = require('gulp-clean-css');
   var mergeSteram = require('merge-stream');
 
-  const js = gulp.src(buildPath+"**/*.js")
+  const js = gulp.src(BUILDPATH+"**/*.js")
     .pipe(uglify())
     .on('error', (e)=>{
       console.log(e);
     })
-    .pipe(gulp.dest(buildPath));
+    .pipe(gulp.dest(BUILDPATH));
 
-  const css = gulp.src(buildPath+"**/*.css")
+  const css = gulp.src(BUILDPATH+"**/*.css")
     .pipe(cleanCSS())
-    .pipe(gulp.dest(buildPath));
+    .pipe(gulp.dest(BUILDPATH));
 
   var merged = (js, css);
   return merged;
@@ -308,8 +322,7 @@ gulp.task("minify", ()=>{
 //----------------
 gulp.task("clean", ()=>{
   const del = require("del");
-  return del([buildPath]).then(e=>{
-    // console.log("deleted", e);
+  return del([BUILDPATH]).then(e=>{
 
   });
 });
@@ -320,18 +333,18 @@ gulp.task("clean", ()=>{
 gulp.task("copy", ()=>{
   //一度対象フォルダ内を空にしてからコピーし直す。
   const fs = require('fs');
-  const dirname = sourcePath+"assets/";
+  const dirname = ASSETSPATH;
   const files = fs.readdirSync(dirname);
   const del = require('del');
   const cpx = require('cpx');
   let arr = [];
   files.forEach((filename)=>{
     if(filename == 'js') return;
-    arr.push(buildPath+filename+"/");
+    arr.push(BUILDPATH+filename+"/");
   });
   // console.log(arr);
   del(arr).then(e=>{
-    return cpx.copy(sourcePath+"assets/**/*", buildPath, ()=>{
+    return cpx.copy(path.join(ASSETSPATH, "**/*"), BUILDPATH, ()=>{
       browserSync.reload();
     });
   });
@@ -346,7 +359,7 @@ gulp.task('imagemin', ()=>{
   var pngquant = require("imagemin-pngquant");
   var mozjpeg = require('imagemin-mozjpeg');
 
-  return gulp.src(buildPath+'**/*')
+  return gulp.src(BUILDPATH+'**/*')
     .pipe(plumber())
     .pipe(imagemin([
        pngquant({
@@ -365,7 +378,7 @@ gulp.task('imagemin', ()=>{
        imagemin.gifsicle()
      ]
     ))
-    .pipe(gulp.dest(buildPath));
+    .pipe(gulp.dest(BUILDPATH));
 });
 
 
@@ -385,7 +398,7 @@ gulp.task('ftpdeploy', ()=> {
   const ftpconfig = require('./ftpconfig.js')
 
   const conn = ftp.create(ftpconfig);
-  const globs = [buildPath+'**', '!'+buildPath+"api/**"];
+  const globs = [BUILDPATH+'**', '!'+BUILDPATH+"api/**"];
 
   return gulp.src(globs, {buffer: false})
     .pipe(conn.newer(ftpconfig.dest))
@@ -418,9 +431,9 @@ gulp.task("sftpdeploy", ()=>{
     break
   }
 
-  return gulp.src(buildPath+'**')
+  return gulp.src(BUILDPATH+'**')
     .pipe(rsync({
-      root: buildPath,
+      root: BUILDPATH,
       hostname: sshconfig.host,
       port: sshconfig.port,
       destination: sshconfig.path
@@ -468,7 +481,7 @@ gulp.task('s3deploy', ()=>{
     return new Promise((resolve, reject)=>{
 
       const params = {
-        localDir: buildPath,
+        localDir: BUILDPATH,
         deleteRemoved: false,
         s3Params: {
           Bucket: s3config.bucket,

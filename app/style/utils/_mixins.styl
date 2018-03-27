@@ -30,20 +30,6 @@ clearfix(){
   }
 }
 
-keyframeAnim(cls, anim, off, on)
-  @keyframes show{cls}
-    from
-      {off}
-    to
-      {on}
-  .{cls}
-    {off}
-  .{cls}.on
-    {on}
-    display: block
-    animation: show + cls anim
-
-
 hover(){
   cursor: pointer;
   .hover{
@@ -61,3 +47,14 @@ hover(){
     }
   }
 }
+
+
+
+sp-sprite($sprite) {
+  width: ($sprite[4]/2);
+  height: ($sprite[5]/2);
+  background-position: ($sprite[2]/2) ($sprite[3]/2);
+  background-image: url($sprite[8]);
+  background-size: ($sprite[6]/2) ($sprite[7]/2)
+}
+

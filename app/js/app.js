@@ -2,7 +2,7 @@ import $ from 'jquery'
 
 class App{
   constructor(){
-    console.log("app ready");
+    console.log("app ready!");
     console.log("env: "+ENV.env);
     this.sequence()
   }

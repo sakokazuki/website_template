@@ -59,7 +59,6 @@ gulp tasks
 gulp.task('default', (cb)=> {
   return runSequence(
     'sprite',
-    'clean',
     'copy',
     'webpack',
     'stylus',
@@ -91,7 +90,7 @@ gulp.task('build', (cb)=> {
 gulp.task("watch", ()=>{
   const watch = require("gulp-watch");
   gulp.watch(path.join(LAYOUTPATH, "**/*.pug"), ()=>{
-    browserSync.reload();
+    browserSync.reload(path.join(BUILDPATH, "**/*.html"));
   })
   gulp.watch(path.join(STYLUSPATH,"**/*.styl"), ["stylus"])
 
@@ -110,11 +109,10 @@ gulp.task("watch", ()=>{
     spriteDirArr.push(path.join(ASSETSPATH, soritepath, name, '*png'));
   });
   gulp.watch(spriteDirArr, ["sprite"]);
-  // gulp.watch(path.join(JSPATH, "**/*.js"), ()=>{
-  //   console.log("js updated")
-  //   browserSync.reload();
-  // })
-  gulp.watch(path.join(ES6PATH, '**/*.js'), ['webpack']);
+  gulp.watch(path.join(JSPATH, "**/*.js"), ()=>{
+    browserSync.reload(path.join(BUILDPATH, "**/*.js"));
+  })
+
 
 })
 
@@ -141,8 +139,8 @@ gulp.task("browser-sync", ()=>{
 //  LAYOUT
 //----------------
 const pugMiddleWare = (req, res, next)=> {
-  const requestPath = url.parse(req.url).pathname;
 
+  const requestPath = url.parse(req.url).pathname;
   if (!requestPath.match(/(\/|\.html)$/)) {
     return next();
   }
@@ -165,7 +163,6 @@ const pugMiddleWare = (req, res, next)=> {
     })(data);
 
     fs.writeFileSync(HTMLPATH, html, 'utf8');
-    console.log(HTMLPATH);
     return next();
   }catch (e){
     console.log(e)
@@ -196,7 +193,6 @@ gulp.task("pug", ()=>{
       pretty: !isBuild
     }))
     .pipe(gulp.dest(HTMLPATH))
-    .pipe(browserSync.stream())
 })
 
 
@@ -208,20 +204,19 @@ gulp.task('webpack', (cb)=>{
   const webpack = require("webpack");
   const webpackConfig = require("./webpack.config");
   webpackConfig.context = path.join(__dirname, SOURCEPATH);
-  webpackConfig.watch = false;
+  webpackConfig.watch = !isBuild;
   webpackConfig.mode = isBuild ? "production" : "development";
   webpackConfig.plugins[0] = new webpack.DefinePlugin({
     ENV: JSON.stringify(variables)
   })
 
-  // if(isBuild == false){
-  //   cb();
-  // }
+  if(isBuild == false){
+    cb();
+  }
   return gulp.src('')
     .pipe(plumber())
     .pipe(webpackStream(webpackConfig, webpack))
     .pipe(gulp.dest(JSPATH))
-    .pipe(browserSync.stream())
 });
 
 //----------------
@@ -343,9 +338,11 @@ gulp.task("copy", ()=>{
     arr.push(BUILDPATH+filename+"/");
   });
   // console.log(arr);
+
+  const destPath = path.join(ASSETSPATH, "**/*");
   del(arr).then(e=>{
-    return cpx.copy(path.join(ASSETSPATH, "**/*"), BUILDPATH, ()=>{
-      browserSync.reload();
+    return cpx.copy(destPath, BUILDPATH, ()=>{
+      browserSync.reload(destPath);
     });
   });
 });

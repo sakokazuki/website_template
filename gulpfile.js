@@ -173,7 +173,9 @@ const pugMiddleWare = (req, res, next)=> {
 const getPugData = (filepath)=>{
   filepath = path.resolve(filepath, '../');
   const layoutRoot = path.join(__dirname, LAYOUTPATH);
-  const rootpath = path.relative(filepath, layoutRoot);
+  let rootpath = path.relative(filepath, layoutRoot);
+  if(rootpath == '') rootpath = '.';
+
   return {ENV: variables, ROOTPATH: rootpath};
 }
 
@@ -356,7 +358,7 @@ gulp.task('imagemin', ()=>{
   var pngquant = require("imagemin-pngquant");
   var mozjpeg = require('imagemin-mozjpeg');
 
-  return gulp.src(BUILDPATH+'**/*')
+  return gulp.src(path.join(BUILDPATH, '**/*'))
     .pipe(plumber())
     .pipe(imagemin([
        pngquant({
